@@ -629,21 +629,11 @@ specifying complex expressions.
 -}
 
 sumLast2 :: Int -> Int
-sumLast2 n = 
-  let posN = abs n
-  in let last1 = mod posN 10
-         last2
-           | posN > 9 = mod (div posN 10) 10 
-           | otherwise = 0
+sumLast2 n =
+  let (div10, mod10) = divMod (abs n) 10
+  in let last1 = mod10
+         last2 = mod div10 10
   in last1 + last2
-
--- sumLast2 n = 
---   last1 + last2
---   where
---     last1 = mod (abs n) 10
---     last2
---       | (abs n) > 9 = mod (div (abs n) 10) 10 
---       | otherwise = 0
 
 {- |
 =💣= Task 10*
