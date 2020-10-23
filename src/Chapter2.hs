@@ -348,8 +348,9 @@ from it!
 ghci> :l src/Chapter2.hs
 -}
 subList :: Int -> Int -> [a] -> [a]
-subList a b list = if a<0 || b<0 then [] 
-  else take (b-a+1) (drop a list)
+subList start end list
+  | start<0 || end<0 || end<start = []
+  | otherwise = take (end-start+1) $ drop start list
 
 {- |
 =⚔️= Task 4
