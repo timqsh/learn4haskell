@@ -866,9 +866,8 @@ list.
 🕯 HINT: Use the 'cycle' function
 -}
 rotate :: Int -> [a] -> [a]
-rotate num l = subList start end (cycle l)
+rotate num l = subList num end $ cycle l
   where
-    start = num
     end = num + (length l) - 1
 
 
