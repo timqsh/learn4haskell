@@ -866,9 +866,13 @@ list.
 🕯 HINT: Use the 'cycle' function
 -}
 rotate :: Int -> [a] -> [a]
-rotate num l = subList num end $ cycle l
-  where
-    end = num + (length l) - 1
+rotate num l
+  | num < 0 = [] 
+  | null l = []
+  | otherwise = subList shift (shift + len - 1) $ cycle l
+      where
+        len = length l
+        shift = mod num len
 
 
 {- |
