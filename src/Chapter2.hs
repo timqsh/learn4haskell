@@ -364,7 +364,7 @@ Implement a function that returns only the first half of a given list.
 -}
 firstHalf :: [a] -> [a]
 firstHalf l = take halfLen l 
-  where halfLen = (div (length l) 2)
+  where halfLen = length l `div` 2
 
 
 {- |
