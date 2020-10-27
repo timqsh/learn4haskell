@@ -628,22 +628,50 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
+newtype Health = MkHealth
+  { unHealth :: Int
+  }
+
+newtype Armor = MkArmor
+  { unArmor :: Int
+  }
+
+newtype Dexterity = MkDexterity
+  { unDexterity :: Int
+  }
+
+newtype Attack = MkAttack
+  { unAttack :: Int
+  }
+
+newtype Strength = MkStrength
+  { unStrength :: Int
+  }
+
+newtype Damage = MkDamage
+  { unDamage :: Int
+  }
+
+newtype Defense = MkDefense
+  { unDefense :: Int
+  }
+
 data Player = Player
-    { playerHealth    :: Int
-    , playerArmor     :: Int
-    , playerAttack    :: Int
-    , playerDexterity :: Int
-    , playerStrength  :: Int
+    { playerHealth    :: Health
+    , playerArmor     :: Armor
+    , playerAttack    :: Attack
+    , playerDexterity :: Dexterity
+    , playerStrength  :: Strength
     }
 
-calculatePlayerDamage :: Int -> Int -> Int
-calculatePlayerDamage attack strength = attack + strength
+calculatePlayerDamage :: Attack -> Strength -> Damage
+calculatePlayerDamage attack strength = MkDamage $ unAttack attack + unStrength strength
 
-calculatePlayerDefense :: Int -> Int -> Int
-calculatePlayerDefense armor dexterity = armor * dexterity
+calculatePlayerDefense :: Armor -> Dexterity -> Defense
+calculatePlayerDefense armor dexterity = MkDefense $ unArmor armor * unDexterity dexterity
 
-calculatePlayerHit :: Int -> Int -> Int -> Int
-calculatePlayerHit damage defense health = health + defense - damage
+calculatePlayerHit :: Damage -> Defense -> Health -> Health
+calculatePlayerHit damage defense health = MkHealth $ unHealth health + unDefense defense - unDamage damage
 
 -- The second player hits first player and the new first player is returned
 hitPlayer :: Player -> Player -> Player
@@ -821,6 +849,27 @@ parametrise data types in places where values can be of any general type.
   maybe-treasure ;)
 -}
 
+data Dragon power = MkDragon power deriving (Show)
+
+data TreasureChest x = MkTreasureChest
+    { treasureChestGold :: Int
+    , treasureChestLoot :: x
+    } deriving (Show)
+
+data Lair power treasure = MkLair
+  { dragon :: Dragon power
+  , treasureChest :: Maybe (TreasureChest treasure)
+  } deriving (Show)
+
+data Power = Fire | Frost deriving (Show)
+data Treasure = Diamond | Ruby | Emerald deriving (Show)
+
+fireDragon = MkDragon Fire
+firstLair = MkLair {dragon=fireDragon, treasureChest=Nothing}
+
+treasure = MkTreasureChest {treasureChestGold=20, treasureChestLoot=Diamond}
+secondLair = MkLair {dragon=MkDragon Frost, treasureChest=Just treasure}
+
 {-
 =🛡= Typeclasses
 
@@ -978,6 +1027,26 @@ Implement instances of "Append" for the following types:
 class Append a where
     append :: a -> a -> a
 
+newtype Gold = MkGold
+  { unGold :: Int
+  } deriving (Show)
+
+instance Append Gold where
+  append :: Gold -> Gold -> Gold
+  append g1 g2 = MkGold $ unGold g1 + unGold g2
+
+instance Append [a] where
+  append :: [a] -> [a] -> [a]
+  append l1 l2 = l1 ++ l2
+
+instance (Append a) => Append (Maybe a) where
+  append :: Maybe a -> Maybe a -> Maybe a
+  append Nothing r = r
+  append l Nothing = l
+  append (Just l) (Just r) = Just (append l r)
+
+doAppend :: (Append a) => a -> a -> a
+doAppend l r = append l r
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -1038,6 +1107,24 @@ implement the following functions:
 
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
+
+data Day = Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday deriving (Show, Enum)
+
+nextDay :: Day -> Day
+nextDay Sunday = Monday
+nextDay day = succ day
+
+isWeekend :: Day -> Bool
+isWeekend Saturday = True
+isWeekend Sunday = True
+isWeekend _ = False
+
+daysToParty :: Day -> Int
+daysToParty day 
+  | isWeekend day = diff + 7
+  | otherwise = diff
+  where
+    diff = fromEnum Friday - fromEnum day
 
 {-
 =💣= Task 9*
