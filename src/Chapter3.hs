@@ -52,6 +52,8 @@ provide more top-level type signatures, especially when learning Haskell.
 {-# LANGUAGE InstanceSigs #-}
 
 module Chapter3 where
+import Data.List
+
 
 {-
 =🛡= Types in Haskell
@@ -393,23 +395,23 @@ after the fight. The battle has the following possible outcomes:
 
 -}
 
-data Knight = Knight
-  { knightHealth :: Int
-  , knightAttack :: Int
-  , knightGold :: Int
+data OldKnight = OldKnight
+  { oldKnightHealth :: Int
+  , oldKnightAttack :: Int
+  , oldKnightGold :: Int
   } deriving (Show)
 
-data Monster = Monster
-  { monsterHealth :: Int
-  , monsterAttack :: Int
-  , monsterGold :: Int
+data OldMonster = OldMonster
+  { oldMonsterHealth :: Int
+  , oldMonsterAttack :: Int
+  , oldMonsterGold :: Int
   } deriving (Show)
 
-fight :: Knight -> Monster -> Int
+fight :: OldKnight -> OldMonster -> Int
 fight k m
-  | knightAttack k >= monsterHealth m = knightGold k + monsterGold m
-  | monsterAttack m >= knightHealth k = -1
-  | otherwise = knightGold k
+  | oldKnightAttack k >= oldMonsterHealth m = oldKnightGold k + oldMonsterGold m
+  | oldMonsterAttack m >= oldKnightHealth k = -1
+  | otherwise = oldKnightGold k
 
 {- |
 =🛡= Sum types
@@ -540,7 +542,7 @@ cityPopulation :: City -> Int
 cityPopulation city = sum $ map housePeopleNum $ cityHouses city
 
 canBuildWalls :: City -> Bool
-canBuildWalls (City NoCastle _ _ _) = False
+canBuildWalls City{cityCastle=NoCastle} = False
 canBuildWalls city = (cityPopulation city >= 10)
 
 buildWalls :: City -> City
@@ -1160,6 +1162,66 @@ properties using typeclasses, but they are different data types in the end.
 Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
+
+data Action = Attack | DrinkHealthPotion | CastDefenceSpell deriving (Show)
+
+data Knight = MkKnight
+  { knightHealth :: Int
+  , knightDefense :: Int
+  , knightActions :: [Action]
+  , knightDamage :: Int
+  } deriving (Show)
+
+data Monster = MkMonster
+  { monsterHealth :: Int
+  , monsterActions :: [Action]
+  , monsterDamage :: Int
+  } deriving (Show)
+
+class Creature a where
+  health :: a -> Int
+  decreaseHealth :: a -> Int -> a
+  damage :: a -> Int
+
+instance Creature Knight where
+  health :: Knight -> Int
+  health = knightHealth
+
+  decreaseHealth :: Knight -> Int -> Knight
+  decreaseHealth k i = k{knightHealth=(knightHealth k - amount)} 
+    where amount = max (i - knightDefense k) 0
+  
+  damage :: Knight -> Int
+  damage = knightDamage
+
+instance Creature Monster where
+  health :: Monster -> Int
+  health = monsterHealth
+
+  decreaseHealth :: Monster -> Int -> Monster
+  decreaseHealth m i = m{monsterHealth=(monsterHealth m - i)}
+
+  damage :: Monster -> Int
+  damage = monsterDamage
+
+
+takeDamage :: (Creature a) => a -> Int -> a
+takeDamage = decreaseHealth
+
+data Winner = First | Second deriving (Show)
+
+battle :: (Creature a, Creature b) => a -> b -> Winner
+battle c1 c2
+  | health c1 <= 0 = Second
+  | health c2 <= 0 = First
+  | otherwise = battle new1 new2
+    where
+      new2 = takeDamage c2 (damage c1)
+      new1 = takeDamage c1 (damage c2)
+
+k = MkKnight{knightHealth=40, knightDefense=2, knightDamage=10, knightActions=[Attack, DrinkHealthPotion]}
+m = MkMonster{monsterHealth=30, monsterDamage=5, monsterActions=[Attack]}
+w = battle k m
 
 
 {-
