@@ -53,6 +53,7 @@ provide more top-level type signatures, especially when learning Haskell.
 
 module Chapter3 where
 import Data.List
+import Data.Tuple
 
 
 {-
@@ -1164,6 +1165,8 @@ contestants, and write a function that decides the outcome of a fight!
 -}
 
 data Action = Attack | DrinkHealthPotion | CastDefenceSpell deriving (Show)
+healthPotionHealAmount = 3
+spellDefenceAmount = 1
 
 data Knight = MkKnight
   { knightHealth :: Int
@@ -1178,12 +1181,15 @@ data Monster = MkMonster
   , monsterDamage :: Int
   } deriving (Show)
 
-class Creature a where
+class Fighter a where
   health :: a -> Int
   decreaseHealth :: a -> Int -> a
   damage :: a -> Int
+  actions :: a -> [Action]
+  heal :: a -> Int -> a
+  castDefenceSpell :: a -> Int -> a
 
-instance Creature Knight where
+instance Fighter Knight where
   health :: Knight -> Int
   health = knightHealth
 
@@ -1194,7 +1200,13 @@ instance Creature Knight where
   damage :: Knight -> Int
   damage = knightDamage
 
-instance Creature Monster where
+  actions :: Knight -> [Action]
+  actions k = cycle (knightActions k)
+
+  heal k amount = k{knightHealth=amount + knightHealth k}
+  castDefenceSpell k amount = k{knightDefense=amount + knightDefense k}
+
+instance Fighter Monster where
   health :: Monster -> Int
   health = monsterHealth
 
@@ -1204,24 +1216,51 @@ instance Creature Monster where
   damage :: Monster -> Int
   damage = monsterDamage
 
+  actions :: Monster -> [Action]
+  actions m = cycle (monsterActions m)
 
-takeDamage :: (Creature a) => a -> Int -> a
+  heal m amount = m  -- cant heal
+  castDefenceSpell m amount = m  -- cant cast
+
+
+takeDamage :: (Fighter a) => a -> Int -> a
 takeDamage = decreaseHealth
 
 data Winner = First | Second deriving (Show)
 
-battle :: (Creature a, Creature b) => a -> b -> Winner
-battle c1 c2
-  | health c1 <= 0 = Second
-  | health c2 <= 0 = First
-  | otherwise = battle new1 new2
-    where
-      new2 = takeDamage c2 (damage c1)
-      new1 = takeDamage c1 (damage c2)
+makeAction :: (Fighter a, Fighter b) => Action -> a -> b -> (a, b)
+makeAction Attack c1 c2 = (c1, takeDamage c2 (damage c1))
+makeAction DrinkHealthPotion c1 c2 = (heal c1 healthPotionHealAmount, c2)
+makeAction CastDefenceSpell c1 c2 = (castDefenceSpell c1 spellDefenceAmount, c2)
 
-k = MkKnight{knightHealth=40, knightDefense=2, knightDamage=10, knightActions=[Attack, DrinkHealthPotion]}
-m = MkMonster{monsterHealth=30, monsterDamage=5, monsterActions=[Attack]}
-w = battle k m
+battle :: (Fighter a, Fighter b) => a -> b -> Winner
+battle cc1 cc2 = go 0 0 True cc1 cc2
+  where 
+    go ind1 ind2 firstPlayerTurn c1 c2
+      | health c1 <= 0 = Second
+      | health c2 <= 0 = First
+      | firstPlayerTurn = go (ind1+1) ind2 (not firstPlayerTurn) (fst tup) (snd tup)
+      | otherwise = go ind1 (ind2+1) (not firstPlayerTurn) (fst tup) (snd tup)
+        where
+          tup
+            | firstPlayerTurn = makeAction (actions c1 !! ind1) c1 c2
+            | otherwise = swap $ makeAction (actions c2 !! ind2) c2 c1
+
+k1 = MkKnight{knightHealth=40, knightDefense=2, knightDamage=10, knightActions=[Attack, DrinkHealthPotion]}
+m1= MkMonster{monsterHealth=30, monsterDamage=5, monsterActions=[Attack]}
+w1 = battle m1 k1
+
+k2 = MkKnight{knightHealth=10, knightDefense=0, knightDamage=1, knightActions=[Attack]}
+m2= MkMonster{monsterHealth=10, monsterDamage=2, monsterActions=[Attack]}
+w2 = battle m2 k2
+
+k3 = MkKnight{knightHealth=10, knightDefense=2, knightDamage=2, knightActions=[Attack, DrinkHealthPotion]}
+m3= MkMonster{monsterHealth=20, monsterDamage=4, monsterActions=[Attack]}
+w3 = battle k3 m3
+
+kt = MkKnight{knightHealth=10, knightDefense=2, knightDamage=2, knightActions=[CastDefenceSpell, Attack, DrinkHealthPotion]}
+mt= MkMonster{monsterHealth=20, monsterDamage=4, monsterActions=[Attack]}
+wt = battle kt mt
 
 
 {-
