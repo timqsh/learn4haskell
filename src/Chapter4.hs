@@ -293,7 +293,8 @@ values and apply them to the type level?
 -}
 instance Functor (Secret e) where
     fmap :: (a -> b) -> Secret e a -> Secret e b
-    fmap = error "fmap for Box: not implemented!"
+    fmap _ (Trap t) = Trap t
+    fmap f (Reward r) = Reward (f r)
 
 {- |
 =⚔️= Task 3
@@ -306,6 +307,11 @@ typeclasses for standard data types.
 data List a
     = Empty
     | Cons a (List a)
+
+instance Functor List where
+  fmap :: (a -> b) -> List a -> List b
+  fmap _ Empty = Empty
+  fmap f (Cons x xs) = Cons (f x) (fmap f xs)
 
 {- |
 =🛡= Applicative
