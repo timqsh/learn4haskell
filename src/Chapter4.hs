@@ -483,7 +483,7 @@ instance Applicative (Secret e) where
     (<*>) :: Secret e (a -> b) -> Secret e a -> Secret e b
     (<*>) (Reward func) (Reward r) = Reward (func r)
     (<*>) (Trap t) _ = Trap t
-    (<*>) sd (Trap t) = Trap t
+    (<*>) _ (Trap t) = Trap t
 
 {- |
 =⚔️= Task 5
@@ -510,8 +510,13 @@ instance Applicative List where
   (<*>) Empty _ = Empty
   (<*>) (Cons f (xf)) values = concatenateList (fmap f values) (xf <*> values)
 
+testList :: List Int
 testList = Cons 1 (Cons 2 (Cons 3 Empty))
+
+testFuncs :: List (Int->Int)
 testFuncs = Cons ((+) 2)  (Cons ((-) 2) Empty)
+
+testResult :: List Int
 testResult = testFuncs <*> testList
 
 {- |
@@ -624,7 +629,8 @@ Implement the 'Monad' instance for our 'Secret' type.
 -}
 instance Monad (Secret e) where
     (>>=) :: Secret e a -> (a -> Secret e b) -> Secret e b
-    (>>=) = error "bind Secret: Not implemented!"
+    (>>=) (Trap t) _ = Trap t
+    (>>=) (Reward r) f = f r
 
 {- |
 =⚔️= Task 7
@@ -635,6 +641,10 @@ Implement the 'Monad' instance for our lists.
   maybe a few) to flatten lists of lists to a single list.
 -}
 
+instance Monad List where
+  (>>=) :: List a -> (a -> List b) -> List b
+  (>>=) Empty _ = Empty
+  (>>=) (Cons x xs) func = concatenateList (func x) ( xs >>= func)
 
 {- |
 =💣= Task 8*: Before the Final Boss
@@ -653,7 +663,7 @@ Can you implement a monad version of AND, polymorphic over any monad?
 🕯 HINT: Use "(>>=)", "pure" and anonymous function
 -}
 andM :: (Monad m) => m Bool -> m Bool -> m Bool
-andM = error "andM: Not implemented!"
+andM first second = fmap (&&) first <*> second
 
 {- |
 =🐉= Task 9*: Final Dungeon Boss
@@ -697,7 +707,26 @@ Specifically,
  ❃ Implement the function to convert Tree to list
 -}
 
+data Tree a = Node a (Tree a) (Tree a) | NoTree deriving (Show)
 
+instance Functor Tree where
+  fmap :: (a->b) -> Tree a -> Tree b
+  fmap _ NoTree = NoTree
+  fmap f (Node d left right) = Node (f d) (fmap f left) (fmap f right)
+
+reverseTree :: Tree a -> Tree a
+reverseTree NoTree = NoTree
+reverseTree (Node d left right) = Node d (reverseTree right) (reverseTree left)
+
+treeToList :: Tree a -> [a]
+treeToList NoTree = []
+treeToList (Node d left right) = d : treeToList left ++ treeToList right
+
+testTree :: Tree String
+testTree = Node "root" (Node "left" (Node "left left" NoTree NoTree) NoTree) (Node "right" NoTree NoTree)
+
+resultTree :: [Int]
+resultTree = treeToList $ reverseTree $ fmap length testTree
 {-
 You did it! Now it is time to open pull request with your changes
 and summon @vrom911 and @chshersh for the review!
