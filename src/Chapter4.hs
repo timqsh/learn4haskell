@@ -306,7 +306,7 @@ typeclasses for standard data types.
 -}
 data List a
     = Empty
-    | Cons a (List a)
+    | Cons a (List a) deriving (Show)
 
 instance Functor List where
   fmap :: (a -> b) -> List a -> List b
@@ -478,10 +478,12 @@ Implement the Applicative instance for our 'Secret' data type from before.
 -}
 instance Applicative (Secret e) where
     pure :: a -> Secret e a
-    pure = error "pure Secret: Not implemented!"
+    pure x = Reward x
 
     (<*>) :: Secret e (a -> b) -> Secret e a -> Secret e b
-    (<*>) = error "(<*>) Secret: Not implemented!"
+    (<*>) (Reward func) (Reward r) = Reward (func r)
+    (<*>) (Trap t) _ = Trap t
+    (<*>) sd (Trap t) = Trap t
 
 {- |
 =⚔️= Task 5
@@ -495,6 +497,22 @@ Implement the 'Applicative' instance for our 'List' type.
   type.
 -}
 
+concatenateList :: List a -> List a -> List a
+concatenateList Empty b = b
+concatenateList (Cons a xa) b = Cons a (concatenateList xa b)
+
+instance Applicative List where
+  pure :: a -> List a
+  pure x = Cons x Empty
+
+  (<*>) :: List (a -> b) -> List a -> List b
+  (<*>) _ Empty = Empty
+  (<*>) Empty _ = Empty
+  (<*>) (Cons f (xf)) values = concatenateList (fmap f values) (xf <*> values)
+
+testList = Cons 1 (Cons 2 (Cons 3 Empty))
+testFuncs = Cons ((+) 2)  (Cons ((-) 2) Empty)
+testResult = testFuncs <*> testList
 
 {- |
 =🛡= Monad
