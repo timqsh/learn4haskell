@@ -52,7 +52,6 @@ provide more top-level type signatures, especially when learning Haskell.
 {-# LANGUAGE InstanceSigs #-}
 
 module Chapter3 where
-import Data.List
 import Data.Tuple
 
 
@@ -521,12 +520,11 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city totally.
 -}
-data House = House {housePeopleNum::Int} deriving (Show)
+data House = UnsafeMkHouse {housePeopleNum::Int} deriving (Show)
 data MainBuilding = Church | Library deriving (Show)
-data Castle = Castle {castleName::String} | NoCastle deriving (Show)
+data Castle = Castle String | NoCastle | CastleAndWalls String deriving (Show)
 data City = City
   { cityCastle :: Castle
-  , cityHasWall :: Bool
   , cityMain :: MainBuilding
   , cityHouses :: [House]
   } deriving (Show)
@@ -536,19 +534,20 @@ buildCastle name city = city {cityCastle=Castle name}
 
 buildHouse :: Int -> City -> City
 buildHouse peopleNum city 
-  | peopleNum>=1 && peopleNum<=4 = city {cityHouses=House peopleNum : cityHouses city}
+  | peopleNum>=1 && peopleNum<=4 = city {cityHouses=UnsafeMkHouse peopleNum : cityHouses city}
   | otherwise = city
 
 cityPopulation :: City -> Int
 cityPopulation city = sum $ map housePeopleNum $ cityHouses city
 
-canBuildWalls :: City -> Bool
-canBuildWalls City{cityCastle=NoCastle} = False
-canBuildWalls city = (cityPopulation city >= 10)
+castleBuildWalls :: Castle -> Castle
+castleBuildWalls (Castle name) = CastleAndWalls name
+castleBuildWalls (CastleAndWalls name) = CastleAndWalls name
+castleBuildWalls (NoCastle) = NoCastle
 
 buildWalls :: City -> City
 buildWalls city
-  | canBuildWalls city = city {cityHasWall=True}
+  | cityPopulation city >= 10 = city{cityCastle=(castleBuildWalls (cityCastle city))}
   | otherwise = city
 
 {-
@@ -1040,16 +1039,13 @@ instance Append Gold where
 
 instance Append [a] where
   append :: [a] -> [a] -> [a]
-  append l1 l2 = l1 ++ l2
+  append = (++)
 
 instance (Append a) => Append (Maybe a) where
   append :: Maybe a -> Maybe a -> Maybe a
   append Nothing r = r
   append l Nothing = l
   append (Just l) (Just r) = Just (append l r)
-
-doAppend :: (Append a) => a -> a -> a
-doAppend l r = append l r
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -1111,11 +1107,12 @@ implement the following functions:
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
 
-data Day = Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday deriving (Show, Enum)
+data Day = Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday deriving (Show, Enum, Bounded, Eq)
 
 nextDay :: Day -> Day
-nextDay Sunday = Monday
-nextDay day = succ day
+nextDay day
+  | day == maxBound = minBound
+  | otherwise = succ day
 
 isWeekend :: Day -> Bool
 isWeekend Saturday = True
