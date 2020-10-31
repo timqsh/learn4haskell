@@ -481,9 +481,8 @@ instance Applicative (Secret e) where
     pure x = Reward x
 
     (<*>) :: Secret e (a -> b) -> Secret e a -> Secret e b
-    (<*>) (Reward func) (Reward r) = Reward (func r)
     (<*>) (Trap t) _ = Trap t
-    (<*>) _ (Trap t) = Trap t
+    (<*>) (Reward f) s = fmap f s
 
 {- |
 =⚔️= Task 5
@@ -498,6 +497,7 @@ Implement the 'Applicative' instance for our 'List' type.
 -}
 
 concatenateList :: List a -> List a -> List a
+concatenateList a Empty = a
 concatenateList Empty b = b
 concatenateList (Cons a xa) b = Cons a (concatenateList xa b)
 
@@ -663,7 +663,7 @@ Can you implement a monad version of AND, polymorphic over any monad?
 🕯 HINT: Use "(>>=)", "pure" and anonymous function
 -}
 andM :: (Monad m) => m Bool -> m Bool -> m Bool
-andM first second = fmap (&&) first <*> second
+andM first second = first >>= (\x -> if x then second else pure False)
 
 {- |
 =🐉= Task 9*: Final Dungeon Boss
